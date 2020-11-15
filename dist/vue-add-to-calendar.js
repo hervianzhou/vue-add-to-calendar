@@ -1,5 +1,5 @@
 /*!
- * vue-add-to-calendar v1.0.4 
+ * vue-add-to-calendar v2.0.0 
  * (c) 2019 nicolasbeauvais
  * Released under the MIT License.
  */
@@ -18,6 +18,21 @@ var AddToCalendarMixin = {
     }
   }
 };
+
+
+
+
+var AddToCalendarMixinIcal = {
+  template: "<a :href=\"$parent.calendarIcal(calendar)\" :class=\"calendarClass\" target=\"_blank\"><slot></slot></a>",
+
+  computed: {
+    calendarClass: function calendarClass () {
+      return ['vue-add-to-calendar', ((this.calendar) + "-calendar")];
+    }
+  }
+};
+
+
 
 var calendars = {
   google: {
@@ -48,7 +63,27 @@ var calendars = {
         enddt: end
       };
     }
+  },
+  
+  
+  apple: {
+
+    url: 'data:text/calendar;charset=utf8,BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT',
+    parameters: function parameters (title, location, details, start, begin, end) {
+      return {
+		URL: 'https://inviteman.com',
+        SUMMARY: title,
+        LOCATION: location,
+        DTSTART: start,
+        DTEND: end,
+        DESCRIPTION: details,
+		BEGIN: 'VALARM\nTRIGGER:-PT24H\nREPEAT:nDURATION:PT15\nACTION:DISPLAY\nDESCRIPTION:Reminder\nEND:VALARM',
+		END:'VEVENT\nEND:VCALENDAR',
+      };
+    }
   }
+  
+  
 };
 
 var AddToCalendar = {
@@ -133,9 +168,34 @@ var AddToCalendar = {
 
       return url;
     },
+	
+	
+	calendarIcal: function calendarIcal (calendar) {
+      var url = this.calendars[calendar].url;
+      var parameters = this.calendars[calendar].parameters(
+        this.formatStringIcal(this.title),
+        this.formatStringIcal(this.location),
+        this.formatStringIcal(this.details),
+        this.formatDate(this.start),
+        this.formatDate(this.end)
+      );
+
+      for (var key in parameters) {
+        if (parameters.hasOwnProperty(key) && parameters[key]) {
+          url += "\n" + key + ":" + (parameters[key]);
+        }
+      }
+
+      return url;
+    },
 
     formatString: function formatString (string) {
       return encodeURIComponent(string).replace(/%20/g, '+');
+    },
+	
+	
+    formatStringIcal: function formatString (string) {
+      return encodeURIComponent(string).replace(/%20/g, '%20');
     },
 
     formatDate: function formatDate (date) {
@@ -158,11 +218,15 @@ var AddToCalendar = {
     'microsoft-calendar': {
       mixins: [AddToCalendarMixin],
       data: function () { return { calendar: 'microsoft' }; }
+    },
+    'apple-calendar': {
+      mixins: [AddToCalendarMixinIcal],
+      data: function () { return { calendar: 'apple' }; }
     }
   }
 };
 
-AddToCalendar.version = '1.0.4';
+AddToCalendar.version = '2.0.0';
 
 AddToCalendar.install = function (Vue) {
   Vue.component('add-to-calendar', AddToCalendar);

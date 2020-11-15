@@ -1,4 +1,5 @@
 import AddToCalendarMixin from './add-to-calendar-mixin';
+import AddToCalendarMixinIcal from './add-to-calendar-mixin-ios';
 
 export const calendars = {
   google: {
@@ -29,7 +30,26 @@ export const calendars = {
         enddt: end
       };
     }
+  },
+  
+  
+  apple: {
+
+    url: 'data:text/calendar;charset=utf8,BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT',
+    parameters: function parameters (title, location, details, start, begin, end) {
+      return {
+		URL: 'https://inviteman.com',
+        SUMMARY: title,
+        LOCATION: location,
+        DTSTART: start,
+        DTEND: end,
+        DESCRIPTION: details,
+		BEGIN: 'VALARM\nTRIGGER:-PT24H\nREPEAT:nDURATION:PT15\nACTION:DISPLAY\nDESCRIPTION:Reminder\nEND:VALARM',
+		END:'VEVENT\nEND:VCALENDAR',
+      };
+    }
   }
+  
 };
 
 export default {
@@ -115,11 +135,37 @@ export default {
       return url;
     },
 
-    formatString (string) {
-      return encodeURIComponent(string).replace(/%20/g, '+');
+	
+	
+	calendarIcal: function calendarIcal (calendar) {
+      var url = this.calendars[calendar].url;
+      var parameters = this.calendars[calendar].parameters(
+        this.formatStringIcal(this.title),
+        this.formatStringIcal(this.location),
+        this.formatStringIcal(this.details),
+        this.formatDate(this.start),
+        this.formatDate(this.end)
+      );
+
+      for (var key in parameters) {
+        if (parameters.hasOwnProperty(key) && parameters[key]) {
+          url += "\n" + key + ":" + (parameters[key]);
+        }
+      }
+
+      return url;
     },
 
-    formatDate (date) {
+    formatString: function formatString (string) {
+      return encodeURIComponent(string).replace(/%20/g, '+');
+    },
+	
+	
+    formatStringIcal: function formatString (string) {
+      return encodeURIComponent(string).replace(/%20/g, '%20');
+    },
+
+    formatDate: function formatDate (date) {
       return date ? date.toISOString().replace(/-|:|\.\d+/g, '') : null;
     }
   },
@@ -139,6 +185,10 @@ export default {
     'microsoft-calendar': {
       mixins: [AddToCalendarMixin],
       data: function () { return { calendar: 'microsoft' }; }
+    },
+    'apple-calendar': {
+      mixins: [AddToCalendarMixinIcal],
+      data: function () { return { calendar: 'apple' }; }
     }
   }
 };
